@@ -1,0 +1,15 @@
+#Python 
+.venv/
+__pycache__/
+*.py[cod]
+
+#environment
+.env
+.env.local
+
+#macOS
+.DS_Store
+
+#Next js
+frontend/node_modules/
+frontend/.next/
