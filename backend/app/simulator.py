@@ -71,13 +71,50 @@ class CircuitVectorSimulator:
     def apply_single_gate(self, operation: GateOperation) -> None:
         #apply single qubit gate operation
         if operation.gate != "measure":
-            gate_matrix = self.get_gate_matrix(operation.gate, operation.math_params)
-            target_qubit = operation.target_qubits[0]
-            basis_length = len(self.state)
-            for i in range(basis_length):
-                if ((i >> self.num_qubits-target_qubit) & 1) == 0:
-                    for k in range(basis_length):
-                        if (tf.math.logical_not(tf.math.logical_xor(i,k))) == i:
+            gate_matrix = self.get_gate_matrix(operation.gate, operation.math_params) #gets gate specific matrix transformation
+            target_qubit = operation.target_qubits[0] 
+            basis_length = len(self.state) #gets length of the computational basis (basically just 2^num_qubits) - number of different possible output bit strings
+            for i in range(basis_length): #goes through each basis vector (via the binary representation of its index+1)
+                if ((i >> self.num_qubits-target_qubit) & 1) == 0: #selects the ones with 0 in the position of the qubit in question
+                    j = 1 << self.numqubits-target_qubit
+                    k = i | j
+                    old_pair=np.array([i],[k]) #pairs that up with the other basis vector that has a 1 in the specified qubit slot, same elsewhere
+                    new_pair=gate_matrix*old_pair #applies the gate matrix to those two 
+                    self.state(i)=new_pair(0)
+                    self.state(k)=new_pair(1)
+
+            self.state = self.state / (np.linalg.norm(self.state)) #normalizes to prevent small floating point errors        
+
+
+    def apply_multi_gate(self, operation: GateOperation) -> None:
+        gate_matrix = self.get_gate_matrix(operation.gate, operation.math_params) #gets required matrix
+        target_qubit = operation.target_qubits[0]
+        control_qubit = operation.control_qubits[0]
+        basis_length = len(self.state)
+        for i in range(basis_length):
+            if ((i >> self.num_qubits-control_qubit) & 1) == 0 and ((i >> self.num_qubits-target_qubit) & 1) == 0:
+                j = 1 << self.num_qubits-target_qubit
+                k = i | j
+                m = 1 << self.num_qubits-control_qubit #here for swap gate, the first gate is arbitrarily labeled "control"
+                n = i | m 
+                p = 3 << self.num_qubits-control_qubit
+                q = i | p
+                old_component=np.array([i], [k], [n], [q])
+                new_component= gate_matrix*old_component
+                self.state[i]=new_component(0)
+                self.state[k]=new_component(1)
+                self.state[n]=new_component(2)
+                self.state[q]=new_component(3)
+
+        self.state = self.state / np.linalg.norm(self.state)
+
+
+    def probabilities(self) -> np.ndarray:
+        return np.abs(self.state) ** 2
+
+    #NEED POST CIRCUIT MEASUREMENT
+
+    #NEED TO GENERATE SAMPLE COUNTS
 
 
                     
