@@ -1,7 +1,7 @@
 from typing import Literal 
 from pydantic import BaseModel, Field
 
-Gates = Literal["h", "x", "y", "z", "measure"]
+Gates = Literal["h", "x", "y", "z", "s", "t", "rx", "ry", "rz", "cx", "cz", "swap","measure"]
 
 #modeling gate operations and circuits
 class GateOperation(BaseModel):

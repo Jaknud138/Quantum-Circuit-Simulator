@@ -14,7 +14,7 @@ class CircuitVectorSimulator:
         state[0] = 1.0
         return state 
 
-    def which_gate(self, operation: GateOperation) -> None:
+    def apply(self, operation: GateOperation) -> None:
         #determine multi or single gate operation
         if len(operation.control_qubits) == 0 and len(operation.target_qubits) == 1:
             self.apply_single_gate(operation)
@@ -112,9 +112,14 @@ class CircuitVectorSimulator:
     def probabilities(self) -> np.ndarray:
         return np.abs(self.state) ** 2
 
-    #NEED POST CIRCUIT MEASUREMENT
-
-    #NEED TO GENERATE SAMPLE COUNTS
+    def get_counts(self, shots: int, seed: int | None = None) -> dict[str, int]:
+        probabilities = self.probabilities()
+        rng = np.random.default_rng(seed)
+        labels = [format(i, f"0{self.num_qubits}b")
+                  for i in range(len(probabilities))]
+        samples = rng.choice(labels, size=shots, p=probabilities)
+        labels_found, counts = np.unique(samples, return_counts=True)
+        return dict(zip(labels_found.tolist(), counts.tolist(),))
 
 
                     
