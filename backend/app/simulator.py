@@ -1,7 +1,6 @@
 from .models import GateOperation
 
 import numpy as np
-import tensorflow as tf
 
 class CircuitVectorSimulator:
     def __init__(self, num_qubits: int):
@@ -27,7 +26,7 @@ class CircuitVectorSimulator:
         #single qubit gates
         if gate == "h":
             #hadamard gate
-            return np.array(([[1, 1], [1, -1]]) / np.sqrt(2), dtype=complex)
+            return np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
         elif gate == "x":
             #pauli x gate
             return np.array([[0, 1], [1, 0]], dtype=complex)
@@ -58,7 +57,7 @@ class CircuitVectorSimulator:
         #multi qubit gates - with bit ordering |00>, |01>, |10>, |11>
         elif gate == "cx":
             #controlled x/ CNOT gate
-            return np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex)
+            return np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dtype=complex)
         elif gate == "cz":
             #controlled z gate
             return np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=complex)
@@ -76,12 +75,12 @@ class CircuitVectorSimulator:
             basis_length = len(self.state) #gets length of the computational basis (basically just 2^num_qubits) - number of different possible output bit strings
             for i in range(basis_length): #goes through each basis vector (via the binary representation of its index+1)
                 if ((i >> self.num_qubits-target_qubit) & 1) == 0: #selects the ones with 0 in the position of the qubit in question
-                    j = 1 << self.numqubits-target_qubit
+                    j = 1 << self.num_qubits-target_qubit
                     k = i | j
-                    old_pair=np.array([i],[k]) #pairs that up with the other basis vector that has a 1 in the specified qubit slot, same elsewhere
-                    new_pair=gate_matrix*old_pair #applies the gate matrix to those two 
-                    self.state(i)=new_pair(0)
-                    self.state(k)=new_pair(1)
+                    old_pair=np.array([self.state[i], self.state[k]]) #pairs that up with the other basis vector that has a 1 in the specified qubit slot, same elsewhere
+                    new_pair=gate_matrix@old_pair #applies the gate matrix to those two 
+                    self.state[i]=new_pair[0]
+                    self.state[k]=new_pair[1]
 
             self.state = self.state / (np.linalg.norm(self.state)) #normalizes to prevent small floating point errors        
 
@@ -97,10 +96,9 @@ class CircuitVectorSimulator:
                 k = i | j
                 m = 1 << self.num_qubits-control_qubit #here for swap gate, the first gate is arbitrarily labeled "control"
                 n = i | m 
-                p = 3 << self.num_qubits-control_qubit
-                q = i | p
-                old_component=np.array([i], [k], [n], [q])
-                new_component= gate_matrix*old_component
+                q = n | k
+                old_component=np.array([self.state[i], self.state[k], self.state[n], self.state[q]])
+                new_component= gate_matrix@old_component
                 self.state[i]=new_component(0)
                 self.state[k]=new_component(1)
                 self.state[n]=new_component(2)
